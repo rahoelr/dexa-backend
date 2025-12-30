@@ -4,6 +4,9 @@
 auth-user-service/dist
 auth-user-service/node_modules
 auth-user-service/build
+attendance-service/dist
+attendance-service/node_modules
+attendance-service/build
 
 # Logs
 logs
@@ -20,6 +23,8 @@ lerna-debug.log*
 # Tests
 auth-user-service/coverage
 auth-user-service/.nyc_output
+attendance-service/coverage
+attendance-service/.nyc_output
 
 # IDEs and editors
 auth-user-service/.idea
@@ -29,6 +34,13 @@ auth-user-service/.c9/
 auth-user-service/*.launch
 auth-user-service/.settings/
 auth-user-service/*.sublime-workspace
+attendance-service/.idea
+attendance-service/.project
+attendance-service/.classpath
+attendance-service/.c9/
+attendance-service/*.launch
+attendance-service/.settings/
+attendance-service/*.sublime-workspace
 
 # VSCode
 auth-user-service/.vscode/*
@@ -36,6 +48,11 @@ auth-user-service/.vscode/*
 !auth-user-service/.vscode/tasks.json
 !auth-user-service/.vscode/launch.json
 !auth-user-service/.vscode/extensions.json
+attendance-service/.vscode/*
+!attendance-service/.vscode/settings.json
+!attendance-service/.vscode/tasks.json
+!attendance-service/.vscode/launch.json
+!attendance-service/.vscode/extensions.json
 
 # Env files (auth service)
 auth-user-service/.env
@@ -43,19 +60,32 @@ auth-user-service/.env.development.local
 auth-user-service/.env.test.local
 auth-user-service/.env.production.local
 auth-user-service/.env.local
+attendance-service/.env
+attendance-service/.env.development.local
+attendance-service/.env.test.local
+attendance-service/.env.production.local
+attendance-service/.env.local
 
 # Temp dirs
 auth-user-service/.temp
 auth-user-service/.tmp
+attendance-service/.temp
+attendance-service/.tmp
 
 # Runtime data
 auth-user-service/pids
 auth-user-service/*.pid
 auth-user-service/*.seed
 auth-user-service/*.pid.lock
+attendance-service/pids
+attendance-service/*.pid
+attendance-service/*.seed
+attendance-service/*.pid.lock
 
 # Diagnostic reports
 auth-user-service/report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+attendance-service/report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Prisma generated
 auth-user-service/generated/prisma
+attendance-service/generated/prisma
