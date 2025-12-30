@@ -1,56 +1,63 @@
-import { All, Controller, Req, Res } from '@nestjs/common';
+import { All, Controller, Req, Res, UseGuards } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import type { Request, Response } from 'express';
 import { firstValueFrom } from 'rxjs';
+import { ProxyService } from './proxy.service';
+import { ConfigService } from './config.service';
+import { AdminGatewayGuard } from './auth/admin-gateway.guard';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly http: HttpService) {}
+  constructor(
+    private readonly http: HttpService,
+    private readonly proxy: ProxyService,
+    private readonly cfg: ConfigService,
+    private readonly jwt: JwtService,
+  ) {}
 
   @All('*')
   async handle(@Req() req: Request, @Res() res: Response) {
-    const baseUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3000';
-    const path = req.params[0] ? `/${req.params[0]}` : '';
-    const url = `${baseUrl}/auth${path}`;
-    const r = await firstValueFrom(
-      this.http.request({
-        method: req.method,
-        url,
-        headers: req.headers as any,
-        data: req.body,
-        params: req.query as any,
-        validateStatus: () => true,
-      }),
-    );
-    Object.entries(r.headers || {}).forEach(([k, v]) => {
-      if (typeof v === 'string') res.setHeader(k, v);
-    });
-    return res.status(r.status).send(r.data);
+    const subpath = (req.params && (req.params as any)[0]) || '';
+    if (subpath === 'register') {
+      const header: string | undefined = req.headers['authorization'] as string | undefined;
+      if (!header) return res.status(401).send({ statusCode: 401, message: 'Missing bearer token', error: 'Unauthorized' });
+      const [type, token] = header.split(' ');
+      if (type !== 'Bearer' || !token) return res.status(401).send({ statusCode: 401, message: 'Invalid token', error: 'Unauthorized' });
+      try {
+        const payload = this.jwt.verify(token);
+        if (payload?.role !== 'ADMIN') {
+          return res.status(403).send({ statusCode: 403, message: 'Admin only', error: 'Forbidden' });
+        }
+      } catch {
+        return res.status(401).send({ statusCode: 401, message: 'Invalid token', error: 'Unauthorized' });
+      }
+    }
+    return this.proxy.forward(req, res, this.cfg.authServiceUrl, '/auth');
+  }
+
+  @All()
+  async handleRoot(@Req() req: Request, @Res() res: Response) {
+    return this.proxy.forward(req, res, this.cfg.authServiceUrl, '/auth');
   }
 }
 
 @Controller('employees')
+@UseGuards(AdminGatewayGuard)
 export class EmployeesController {
-  constructor(private readonly http: HttpService) {}
+  constructor(
+    private readonly http: HttpService,
+    private readonly proxy: ProxyService,
+    private readonly cfg: ConfigService,
+  ) {}
 
   @All('*')
   async handle(@Req() req: Request, @Res() res: Response) {
-    const baseUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3000';
-    const path = req.params[0] ? `/${req.params[0]}` : '';
-    const url = `${baseUrl}/employees${path}`;
-    const r = await firstValueFrom(
-      this.http.request({
-        method: req.method,
-        url,
-        headers: req.headers as any,
-        data: req.body,
-        params: req.query as any,
-        validateStatus: () => true,
-      }),
-    );
-    Object.entries(r.headers || {}).forEach(([k, v]) => {
-      if (typeof v === 'string') res.setHeader(k, v);
-    });
-    return res.status(r.status).send(r.data);
+    return this.proxy.forward(req, res, this.cfg.authServiceUrl, '/employees');
+  }
+
+  @All()
+  async handleRoot(@Req() req: Request, @Res() res: Response) {
+    return this.proxy.forward(req, res, this.cfg.authServiceUrl, '/employees');
   }
 }

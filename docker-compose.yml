@@ -37,7 +37,7 @@ services:
     build:
       context: ./auth-user-service
     environment:
-      DATABASE_URL: ${DATABASE_URL_AUTH:-mysql://auth:authpass@mysql_auth:3306/authdb?allowPublicKeyRetrieval=true&useSSL=false}
+      DATABASE_URL: ${DATABASE_URL_AUTH:-mysql://auth:authpass@host.docker.internal:3307/authdb?allowPublicKeyRetrieval=true&useSSL=false}
       PORT: ${PORT_AUTH:-3000}
       JWT_SECRET: ${JWT_SECRET:-rahulrtest}
       ADMIN_NAME: ${ADMIN_NAME:-Admin}
@@ -53,7 +53,7 @@ services:
     build:
       context: ./attendance-service
     environment:
-      DATABASE_URL: ${DATABASE_URL_ATTENDANCE:-mysql://attendance:attendancepass@mysql_attendance:3306/attendancedb?allowPublicKeyRetrieval=true}
+      DATABASE_URL: ${DATABASE_URL_ATTENDANCE:-mysql://attendance:attendancepass@host.docker.internal:3308/attendancedb?allowPublicKeyRetrieval=true}
       PORT: ${PORT_ATTENDANCE:-3001}
       JWT_SECRET: ${JWT_SECRET:-rahulrtest}
     depends_on:
@@ -67,6 +67,7 @@ services:
       context: ./api-gateway
     environment:
       PORT: ${PORT_GATEWAY:-8080}
+      GATEWAY_TIMEOUT_MS: ${GATEWAY_TIMEOUT_MS:-30000}
       AUTH_SERVICE_URL: http://auth-user-service:${PORT_AUTH:-3000}
       ATTENDANCE_SERVICE_URL: http://attendance-service:${PORT_ATTENDANCE:-3001}
     depends_on:

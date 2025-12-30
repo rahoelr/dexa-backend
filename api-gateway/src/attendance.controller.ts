@@ -1,30 +1,27 @@
-import { All, Controller, Req, Res } from '@nestjs/common';
+import { All, Controller, Req, Res, UseGuards } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import type { Request, Response } from 'express';
 import { firstValueFrom } from 'rxjs';
+import { ProxyService } from './proxy.service';
+import { ConfigService } from './config.service';
+import { JwtGatewayGuard } from './auth/jwt-gateway.guard';
 
 @Controller('attendance')
+@UseGuards(JwtGatewayGuard)
 export class AttendanceController {
-  constructor(private readonly http: HttpService) {}
+  constructor(
+    private readonly http: HttpService,
+    private readonly proxy: ProxyService,
+    private readonly cfg: ConfigService,
+  ) {}
 
   @All('*')
   async handle(@Req() req: Request, @Res() res: Response) {
-    const baseUrl = process.env.ATTENDANCE_SERVICE_URL || 'http://localhost:3001';
-    const path = req.params[0] ? `/${req.params[0]}` : '';
-    const url = `${baseUrl}/attendance${path}`;
-    const r = await firstValueFrom(
-      this.http.request({
-        method: req.method,
-        url,
-        headers: req.headers as any,
-        data: req.body,
-        params: req.query as any,
-        validateStatus: () => true,
-      }),
-    );
-    Object.entries(r.headers || {}).forEach(([k, v]) => {
-      if (typeof v === 'string') res.setHeader(k, v);
-    });
-    return res.status(r.status).send(r.data);
+    return this.proxy.forward(req, res, this.cfg.attendanceServiceUrl, '/attendance');
+  }
+
+  @All()
+  async handleRoot(@Req() req: Request, @Res() res: Response) {
+    return this.proxy.forward(req, res, this.cfg.attendanceServiceUrl, '/attendance');
   }
 }
