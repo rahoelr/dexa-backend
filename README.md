@@ -16,20 +16,22 @@ Lihat compose: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-test/d
   - mysql_attendance di port host 3308
 
 ## Cara Menjalankan
-- Rekomendasi (Makefile):
-  - `make build-up`
-- Alternatif (Makefile):
-  - `make build`
-  - `make up`
-- Opsi utilitas Makefile:
-  - `make down` untuk stop
-  - `make logs` untuk tail logs
-  - `make ps` untuk status
-- Alternatif (Docker Compose di root):
-  - `docker compose up -d --build`
-- Pengembangan terisolasi per layanan:
-  - Masuk ke folder layanan (mis. `auth-user-service/`) lalu `docker compose up -d`
-- Detail target: [Makefile](file:///Users/rahoolll/dexa-technical-test/dexa-backend/Makefile)
+- Jalankan dari root (Docker Compose):
+  - `docker compose up -d`
+  - Akses:
+    - API Gateway: http://localhost:8080
+    - Auth Service: http://localhost:3000
+    - Attendance Service: http://localhost:3001
+    - MySQL Auth: host=localhost port=3307
+    - MySQL Attendance: host=localhost port=3308
+  - Health check:
+    - `curl http://localhost:8080/health`
+  - Hentikan:
+    - `docker compose down`
+  - Logs cepat:
+    - `docker compose logs --tail=200 api-gateway`
+  - Status:
+    - `docker compose ps`
 
 ## Konfigurasi Lingkungan (Default)
 - Auth Service:
@@ -43,8 +45,8 @@ Lihat compose: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-test/d
   - Database: `mysql_attendance`
 - API Gateway:
   - PORT: 8080
-  - AUTH_SERVICE_URL: http://auth-user-service:3000
-  - ATTENDANCE_SERVICE_URL: http://attendance-service:3001
+-  - AUTH_SERVICE_URL: http://host.docker.internal:3000
+-  - ATTENDANCE_SERVICE_URL: http://host.docker.internal:3001
 
 Sumber konfigurasi: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docker-compose.yml)
 
@@ -74,3 +76,26 @@ Sumber konfigurasi: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-t
   - Gateway: 8080
   - MySQL Auth: host 3307 → container 3306
   - MySQL Attendance: host 3308 → container 3306
+
+## Uji Cepat (curl)
+- Login admin:
+  - `curl -i -H 'Content-Type: application/json' -d '{"email":"admin@example.com","password":"password"}' http://localhost:8080/auth/login`
+- Register user (butuh ADMIN_JWT):
+  - `curl -i -H "Authorization: Bearer <ADMIN_JWT>" -H 'Content-Type: application/json' -d '{"name":"Alice","email":"alice@example.com","password":"secret123","role":"EMPLOYEE"}' http://localhost:8080/auth/register`
+- Login user baru:
+  - `curl -i -H 'Content-Type: application/json' -d '{"email":"alice@example.com","password":"secret123"}' http://localhost:8080/auth/login`
+- Verifikasi token:
+  - `curl -i -H "Authorization: Bearer <JWT>" http://localhost:8080/auth/me`
+
+## Pengujian dengan Postman
+- Base URL: `http://localhost:8080`
+- Header:
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <JWT>` untuk endpoint yang dilindungi
+- Matikan proxy/VPN untuk localhost jika request terblokir.
+- Jika 503 (Upstream unavailable), cek:
+  - `docker compose logs --tail=200 api-gateway`
+  - Pastikan Auth/Attendance up dan dapat diakses pada port di atas.
+
+## Dokumentasi Lanjutan
+- Penjelasan routing dan forwarding Api Gateway: [api-gateway.md](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docs/api-gateway.md)
