@@ -23,6 +23,15 @@ export class ProxyService {
   constructor(private readonly http: HttpService) {}
 
   async forward(req: Request, res: Response, baseUrl: string, prefix: string) {
+    if (req.method === 'OPTIONS') {
+      const origin = (req.headers.origin as string) || '*';
+      const reqHeaders = (req.headers['access-control-request-headers'] as string) || 'Authorization, Content-Type, X-Request-Id';
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', reqHeaders);
+      res.setHeader('Access-Control-Allow-Credentials', 'false');
+      return res.status(204).end();
+    }
     const path = (req.params && (req.params as any)[0]) ? `/${(req.params as any)[0]}` : '';
     const url = `${baseUrl}${prefix}${path}`;
     const headers: Record<string, string> = {};

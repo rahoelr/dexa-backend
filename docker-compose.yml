@@ -70,6 +70,7 @@ services:
       GATEWAY_TIMEOUT_MS: ${GATEWAY_TIMEOUT_MS:-30000}
       AUTH_SERVICE_URL: http://auth-user-service:${PORT_AUTH:-3000}
       ATTENDANCE_SERVICE_URL: http://attendance-service:${PORT_ATTENDANCE:-3001}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
     depends_on:
       auth-user-service:
         condition: service_started

@@ -42,12 +42,9 @@ async function bootstrap() {
     next();
   });
   app.enableCors({
-    origin: (process.env.CORS_ORIGIN || '*')
-      .split(',')
-      .map(v => v.trim())
-      .filter(Boolean),
+    origin: ['http://localhost:5173'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Authorization', 'Content-Type', 'X-Request-Id'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'content-type', 'X-Request-Id'],
     credentials: false,
   });
   app.use((req: Request, res: Response, next) => {

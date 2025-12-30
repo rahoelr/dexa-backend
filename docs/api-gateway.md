@@ -79,29 +79,263 @@ npm install
 npm run start:prod
 ```
 
-## Contoh Request/Response
-- Cek forwarding ke Attendance (tanpa token akan 401 oleh guard):
+## Routing Ringkas
+- `/auth/*` → `${AUTH_SERVICE_URL}/auth/*`
+- `/employees/*` → `${AUTH_SERVICE_URL}/employees/*` (ADMIN)
+- `/attendance/*` → `${ATTENDANCE_SERVICE_URL}/attendance/*` (JWT)
 
-```bash
-curl -i http://localhost:8080/attendance
+## Contoh Request/Response (JSON)
+- Auth — Login
+
+```http
+POST /auth/login
+Content-Type: application/json
 ```
 
-- Cek forwarding ke Auth (route root biasanya 404 jika tidak didefinisikan di service):
-
-```bash
-curl -i http://localhost:8080/auth
+```json
+// Request
+{
+  "email": "admin@example.com",
+  "password": "password"
+}
 ```
 
-- Contoh akses Employees dengan Admin:
+```json
+// Response 200
+{
+  "access_token": "<JWT>"
+}
+```
 
-```bash
-curl -i \
-  -H "Authorization: Bearer <ADMIN_JWT>" \
-  http://localhost:8080/employees
+```json
+// Response 401
+{
+  "statusCode": 401,
+  "message": "invalid_credentials",
+  "error": "Unauthorized"
+}
+```
+
+- Auth — Register (ADMIN)
+
+```http
+POST /auth/register
+Authorization: Bearer <ADMIN_JWT>
+Content-Type: application/json
+```
+
+```json
+// Request
+{
+  "name": "Alice",
+  "email": "alice@example.com",
+  "password": "secret123",
+  "role": "EMPLOYEE"
+}
+```
+
+```json
+// Response 201
+{
+  "id": 2,
+  "name": "Alice",
+  "email": "alice@example.com",
+  "role": "EMPLOYEE",
+  "isActive": true,
+  "createdAt": "2025-12-30T18:56:45.690Z"
+}
+```
+
+```json
+// Response 400 (email sudah dipakai)
+{
+  "statusCode": 400,
+  "message": "email_taken",
+  "error": "Bad Request"
+}
+```
+
+```json
+// Response 401/403 (bukan ADMIN atau token invalid)
+{
+  "statusCode": 403,
+  "message": "Admin only",
+  "error": "Forbidden"
+}
+```
+
+- Auth — Me
+
+```http
+GET /auth/me
+Authorization: Bearer <JWT>
+```
+
+```json
+// Response 200
+{
+  "sub": 2,
+  "email": "alice@example.com",
+  "role": "EMPLOYEE",
+  "iat": 1767121010,
+  "exp": 1767207410
+}
+```
+
+- Employees (ADMIN)
+
+```http
+GET /employees
+Authorization: Bearer <ADMIN_JWT>
+```
+
+```json
+// Response 200 (contoh bentuk umum)
+[
+  { "id": 1, "name": "Admin", "email": "admin@example.com", "role": "ADMIN" },
+  { "id": 2, "name": "Alice", "email": "alice@example.com", "role": "EMPLOYEE" }
+]
+```
+
+```json
+// Response 403
+{
+  "statusCode": 403,
+  "message": "Admin only",
+  "error": "Forbidden"
+}
+```
+
+- Attendance — Check-in (JWT)
+
+```http
+POST /attendance/check-in
+Authorization: Bearer <JWT>
+Content-Type: application/json
+```
+
+```json
+// Request (opsional)
+{
+  "photoUrl": "https://example.com/p.jpg",
+  "description": "Datang"
+}
+```
+
+```json
+// Response 200
+{
+  "id": 10,
+  "userId": 2,
+  "date": "2025-12-30T00:00:00.000Z",
+  "checkIn": "2025-12-30T09:01:02.345Z",
+  "checkOut": null,
+  "photoUrl": "https://example.com/p.jpg",
+  "status": "ON_TIME",
+  "description": "Datang",
+  "createdAt": "2025-12-30T09:01:02.345Z"
+}
+```
+
+```json
+// Response 409 (sudah check-in)
+{
+  "statusCode": 409,
+  "message": "Already checked in",
+  "error": "Conflict"
+}
+```
+
+- Attendance — Check-out (JWT)
+
+```http
+POST /attendance/check-out
+Authorization: Bearer <JWT>
+Content-Type: application/json
+```
+
+```json
+// Request (opsional)
+{
+  "description": "Pulang"
+}
+```
+
+```json
+// Response 200
+{
+  "id": 10,
+  "userId": 2,
+  "date": "2025-12-30T00:00:00.000Z",
+  "checkIn": "2025-12-30T09:01:02.345Z",
+  "checkOut": "2025-12-30T17:02:01.123Z",
+  "photoUrl": "https://example.com/p.jpg",
+  "status": "ON_TIME",
+  "description": "Pulang",
+  "createdAt": "2025-12-30T09:01:02.345Z"
+}
+```
+
+```json
+// Response 400 (belum check-in)
+{
+  "statusCode": 400,
+  "message": "Not checked in",
+  "error": "Bad Request"
+}
+```
+
+```json
+// Response 409 (sudah check-out)
+{
+  "statusCode": 409,
+  "message": "Already checked out",
+  "error": "Conflict"
+}
+```
+
+- Attendance — Riwayat Saya (JWT)
+
+```http
+GET /attendance/me?from=2025-12-01&to=2025-12-31&page=1&pageSize=20
+Authorization: Bearer <JWT>
+```
+
+```json
+// Response 200
+{
+  "items": [
+    {
+      "id": 10,
+      "userId": 2,
+      "date": "2025-12-30T00:00:00.000Z",
+      "checkIn": "2025-12-30T09:01:02.345Z",
+      "checkOut": "2025-12-30T17:02:01.123Z",
+      "photoUrl": "https://example.com/p.jpg",
+      "status": "ON_TIME",
+      "description": "Pulang",
+      "createdAt": "2025-12-30T09:01:02.345Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 20,
+  "total": 1
+}
+```
+
+- Kesalahan Upstream (503 dari Gateway)
+
+```json
+{
+  "statusCode": 503,
+  "message": "Upstream unavailable",
+  "error": "Service Unavailable",
+  "code": "ETIMEDOUT",
+  "upstream": "http://host.docker.internal:3000/auth/login"
+}
 ```
 
 ## Troubleshooting Cepat
 - 503 dari Gateway: upstream tidak tersedia atau timeout; pastikan service target berjalan di port yang benar.
 - 401 dari Gateway: token bearer hilang/invalid; pastikan header Authorization benar.
 - 403 di Employees: token tidak memiliki role ADMIN.
-
