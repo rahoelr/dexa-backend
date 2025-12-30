@@ -21,6 +21,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-mysql://auth:authpass@mysql:3306/authdb?allowPublicKeyRetrieval=true&useSSL=false}
       PORT: ${PORT:-3000}
+      JWT_SECRET: ${JWT_SECRET:-rahulrtest}
     depends_on:
       mysql:
         condition: service_healthy
