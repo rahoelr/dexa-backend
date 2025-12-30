@@ -1,6 +1,5 @@
 import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { AttendanceStatus } from '@prisma/client';
 
 function midnightUTC(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
@@ -28,7 +27,7 @@ export class AttendanceService {
     if (existing) throw new ConflictException('Already checked in');
     const shiftStart = parseShiftStart(process.env.SHIFT_START);
     const grace = Number(process.env.LATE_GRACE || 15);
-    const status = nowMinutesUTC(now) <= shiftStart + grace ? AttendanceStatus.ON_TIME : AttendanceStatus.LATE;
+    const status = nowMinutesUTC(now) <= shiftStart + grace ? 'ON_TIME' : 'LATE';
     return this.prisma.attendance.create({
       data: { userId, date: day, checkIn: now, status, photoUrl, description },
     });
@@ -58,6 +57,35 @@ export class AttendanceService {
     const items = await this.prisma.attendance.findMany({
       where,
       orderBy: { date: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+    return { items, page, pageSize, total };
+  }
+  async historyAll(from?: Date, to?: Date, page = 1, pageSize = 20) {
+    const where: any = {};
+    if (from || to) {
+      const cond: any = {};
+      if (from) cond.gte = midnightUTC(from);
+      if (to) cond.lte = midnightUTC(to);
+      where.date = cond;
+    }
+    const total = await this.prisma.attendance.count({ where });
+    const items = await this.prisma.attendance.findMany({
+      where,
+      orderBy: [{ date: 'desc' }, { userId: 'asc' }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+    return { items, page, pageSize, total };
+  }
+  async today(page = 1, pageSize = 50) {
+    const day = midnightUTC(new Date());
+    const where = { date: day };
+    const total = await this.prisma.attendance.count({ where });
+    const items = await this.prisma.attendance.findMany({
+      where,
+      orderBy: [{ userId: 'asc' }],
       skip: (page - 1) * pageSize,
       take: pageSize,
     });

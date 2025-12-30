@@ -10,13 +10,15 @@ export class AttendanceController {
   constructor(private readonly service: AttendanceService) {}
 
   @Post('check-in')
-  async checkIn(@Req() req: any, @Body() body: CheckInDto) {
-    return this.service.checkIn(Number(req.user.id), body.photoUrl, body.description);
+  async checkIn(@Req() req: any, @Body() body?: CheckInDto) {
+    const { photoUrl, description } = body ?? {};
+    return this.service.checkIn(Number(req.user.id), photoUrl, description);
   }
 
   @Post('check-out')
-  async checkOut(@Req() req: any, @Body() body: CheckOutDto) {
-    return this.service.checkOut(Number(req.user.id), body.description);
+  async checkOut(@Req() req: any, @Body() body?: CheckOutDto) {
+    const { description } = body ?? {};
+    return this.service.checkOut(Number(req.user.id), description);
   }
 
   @Get('me')
