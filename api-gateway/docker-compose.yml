@@ -1,0 +1,10 @@
+services:
+  api-gateway:
+    build:
+      context: .
+    environment:
+      PORT: ${PORT:-8080}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://host.docker.internal:3000}
+      ATTENDANCE_SERVICE_URL: ${ATTENDANCE_SERVICE_URL:-http://host.docker.internal:3001}
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"

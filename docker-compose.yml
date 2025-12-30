@@ -1,0 +1,82 @@
+services:
+  mysql_auth:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE_AUTH:-authdb}
+      MYSQL_USER: ${MYSQL_USER_AUTH:-auth}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD_AUTH:-authpass}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_auth_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mysql_attendance:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE_ATTENDANCE:-attendancedb}
+      MYSQL_USER: ${MYSQL_USER_ATTENDANCE:-attendance}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD_ATTENDANCE:-attendancepass}
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_attendance_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  auth-user-service:
+    build:
+      context: ./auth-user-service
+    environment:
+      DATABASE_URL: ${DATABASE_URL_AUTH:-mysql://auth:authpass@mysql_auth:3306/authdb?allowPublicKeyRetrieval=true&useSSL=false}
+      PORT: ${PORT_AUTH:-3000}
+      JWT_SECRET: ${JWT_SECRET:-rahulrtest}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-password}
+    depends_on:
+      mysql_auth:
+        condition: service_healthy
+    ports:
+      - "${PORT_AUTH:-3000}:${PORT_AUTH:-3000}"
+
+  attendance-service:
+    build:
+      context: ./attendance-service
+    environment:
+      DATABASE_URL: ${DATABASE_URL_ATTENDANCE:-mysql://attendance:attendancepass@mysql_attendance:3306/attendancedb?allowPublicKeyRetrieval=true}
+      PORT: ${PORT_ATTENDANCE:-3001}
+      JWT_SECRET: ${JWT_SECRET:-rahulrtest}
+    depends_on:
+      mysql_attendance:
+        condition: service_healthy
+    ports:
+      - "${PORT_ATTENDANCE:-3001}:${PORT_ATTENDANCE:-3001}"
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    environment:
+      PORT: ${PORT_GATEWAY:-8080}
+      AUTH_SERVICE_URL: http://auth-user-service:${PORT_AUTH:-3000}
+      ATTENDANCE_SERVICE_URL: http://attendance-service:${PORT_ATTENDANCE:-3001}
+    depends_on:
+      auth-user-service:
+        condition: service_started
+      attendance-service:
+        condition: service_started
+    ports:
+      - "${PORT_GATEWAY:-8080}:${PORT_GATEWAY:-8080}"
+
+volumes:
+  mysql_auth_data:
+  mysql_attendance_data:

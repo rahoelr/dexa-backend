@@ -6,8 +6,6 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-attendancedb}
       MYSQL_USER: ${MYSQL_USER:-attendance}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-attendancepass}
-    ports:
-      - "3308:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:

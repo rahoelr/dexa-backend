@@ -6,8 +6,6 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-authdb}
       MYSQL_USER: ${MYSQL_USER:-auth}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-authpass}
-    ports:
-      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
