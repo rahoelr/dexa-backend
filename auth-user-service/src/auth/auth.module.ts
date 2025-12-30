@@ -3,15 +3,16 @@ import { JwtModule } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { AdminGuard } from './admin.guard';
 
 @Module({
   imports: [
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'rahulrtest',
+      secret: process.env.JWT_SECRET || 'devsecret',
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  providers: [PrismaService, AuthService],
+  providers: [PrismaService, AuthService, AdminGuard],
   controllers: [AuthController],
   exports: [AuthService],
 })

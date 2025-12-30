@@ -1,14 +1,16 @@
-import { Body, Controller, Get, Headers, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { AdminGuard } from './admin.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private auth: AuthService, private jwt: JwtService) {}
 
   @Post('register')
+  @UseGuards(AdminGuard)
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
   }

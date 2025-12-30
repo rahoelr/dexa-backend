@@ -21,7 +21,10 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-mysql://auth:authpass@mysql:3306/authdb?allowPublicKeyRetrieval=true&useSSL=false}
       PORT: ${PORT:-3000}
-      JWT_SECRET: ${JWT_SECRET:-rahulrtest}
+      JWT_SECRET: ${JWT_SECRET:-devsecret}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-password}
     depends_on:
       mysql:
         condition: service_healthy
