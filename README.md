@@ -16,16 +16,20 @@ Lihat compose: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-test/d
   - mysql_attendance di port host 3308
 
 ## Cara Menjalankan
-- Opsi A (semua sekaligus, root):
-  - `docker compose up -d --build`
-- Opsi B (Makefile per-service):
-  - `make up` untuk start semua
+- Rekomendasi (Makefile):
+  - `make build-up`
+- Alternatif (Makefile):
+  - `make build`
+  - `make up`
+- Opsi utilitas Makefile:
   - `make down` untuk stop
   - `make logs` untuk tail logs
   - `make ps` untuk status
-  - Detail target: [Makefile](file:///Users/rahoolll/dexa-technical-test/dexa-backend/Makefile)
-- Opsi C (pengembangan terisolasi per layanan):
+- Alternatif (Docker Compose di root):
+  - `docker compose up -d --build`
+- Pengembangan terisolasi per layanan:
   - Masuk ke folder layanan (mis. `auth-user-service/`) lalu `docker compose up -d`
+- Detail target: [Makefile](file:///Users/rahoolll/dexa-technical-test/dexa-backend/Makefile)
 
 ## Konfigurasi Lingkungan (Default)
 - Auth Service:
@@ -64,7 +68,6 @@ Sumber konfigurasi: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-t
   - Referensi: [attendance.controller.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/attendance-service/src/attendance/attendance.controller.ts)
 
 ## Catatan
-- Pada macOS, saat menjalankan via Makefile, Gateway mengakses service melalui `host.docker.internal` ketika berjalan per-service (lihat [Makefile](file:///Users/rahoolll/dexa-technical-test/dexa-backend/Makefile)).
 - Port default:
   - Auth: 3000
   - Attendance: 3001
