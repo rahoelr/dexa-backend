@@ -1,3 +1,3 @@
 #!/bin/sh
-npx prisma db push --skip-generate
+npx prisma migrate deploy --skip-generate
 exec node dist/main.js

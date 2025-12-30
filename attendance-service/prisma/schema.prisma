@@ -6,4 +6,27 @@ generator client {
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+enum AttendanceStatus {
+  ON_TIME
+  LATE
+  ABSENT
+}
+
+model Attendance {
+  id          Int               @id @default(autoincrement())
+  userId      Int
+  date        DateTime
+  checkIn     DateTime?
+  checkOut    DateTime?
+  photoUrl    String?
+  status      AttendanceStatus
+  description String?
+  createdAt   DateTime          @default(now())
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
 }
