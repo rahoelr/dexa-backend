@@ -26,7 +26,7 @@ export class AuthController {
     const [type, token] = authorization.split(' ');
     if (type !== 'Bearer' || !token) return {};
     try {
-      const payload = this.jwt.verify(token, { secret: process.env.JWT_SECRET || 'devsecret' });
+      const payload = this.jwt.verify(token, { secret: process.env.JWT_SECRET || 'rahulrtest' });
       return payload;
     } catch {
       return {};

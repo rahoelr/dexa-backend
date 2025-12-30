@@ -8,7 +8,7 @@ import { AdminGuard } from './admin.guard';
 @Module({
   imports: [
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'devsecret',
+      secret: process.env.JWT_SECRET || 'rahulrtest',
       signOptions: { expiresIn: '1d' },
     }),
   ],
