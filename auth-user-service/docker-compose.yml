@@ -1,0 +1,30 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-authdb}
+      MYSQL_USER: ${MYSQL_USER:-auth}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-authpass}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  auth-user-service:
+    build:
+      context: .
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-mysql://auth:authpass@mysql:3306/authdb?allowPublicKeyRetrieval=true&useSSL=false}
+      PORT: ${PORT:-3000}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+volumes:
+  mysql_data:
