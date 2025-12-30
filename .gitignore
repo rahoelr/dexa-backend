@@ -1,0 +1,61 @@
+.trae/
+
+# Auth service build artifacts
+auth-user-service/dist
+auth-user-service/node_modules
+auth-user-service/build
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+
+# Tests
+auth-user-service/coverage
+auth-user-service/.nyc_output
+
+# IDEs and editors
+auth-user-service/.idea
+auth-user-service/.project
+auth-user-service/.classpath
+auth-user-service/.c9/
+auth-user-service/*.launch
+auth-user-service/.settings/
+auth-user-service/*.sublime-workspace
+
+# VSCode
+auth-user-service/.vscode/*
+!auth-user-service/.vscode/settings.json
+!auth-user-service/.vscode/tasks.json
+!auth-user-service/.vscode/launch.json
+!auth-user-service/.vscode/extensions.json
+
+# Env files (auth service)
+auth-user-service/.env
+auth-user-service/.env.development.local
+auth-user-service/.env.test.local
+auth-user-service/.env.production.local
+auth-user-service/.env.local
+
+# Temp dirs
+auth-user-service/.temp
+auth-user-service/.tmp
+
+# Runtime data
+auth-user-service/pids
+auth-user-service/*.pid
+auth-user-service/*.seed
+auth-user-service/*.pid.lock
+
+# Diagnostic reports
+auth-user-service/report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Prisma generated
+auth-user-service/generated/prisma
