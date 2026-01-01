@@ -9,6 +9,7 @@ import { ProxyService } from './proxy.service';
 import { JwtGatewayGuard } from './auth/jwt-gateway.guard';
 import { AdminGatewayGuard } from './auth/admin-gateway.guard';
 import { HealthController } from './health.controller';
+import { AttendancePublicController } from './attendance.public.controller';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { HealthController } from './health.controller';
   controllers: [
     AuthController,
     EmployeesController,
+    AttendancePublicController,
     AttendanceController,
     AdminAttendanceController,
     HealthController,

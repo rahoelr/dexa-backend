@@ -27,7 +27,7 @@ function makeContext(headers: Record<string, string>): ExecutionContext {
       }
     },
     getClass() {
-      return function () {}
+      return class {}
     },
     getHandler() {
       return function () {}
@@ -79,4 +79,3 @@ describe('AdminGatewayGuard', () => {
     expect(() => guard.canActivate(ctx)).toThrow('Admin only')
   })
 })
-

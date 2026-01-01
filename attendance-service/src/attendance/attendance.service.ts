@@ -23,14 +23,24 @@ export class AttendanceService {
   async checkIn(userId: number, photoUrl?: string, description?: string) {
     const now = new Date();
     const day = midnightUTC(now);
-    const existing = await this.prisma.attendance.findUnique({ where: { userId_date: { userId, date: day } } }).catch(() => null);
+    const existing = await this.prisma.attendance
+      .findUnique({ where: { userId_date: { userId, date: day } } })
+      .catch(() => null);
     if (existing) throw new ConflictException('Already checked in');
     const shiftStart = parseShiftStart(process.env.SHIFT_START);
     const grace = Number(process.env.LATE_GRACE || 15);
     const status = nowMinutesUTC(now) <= shiftStart + grace ? 'ON_TIME' : 'LATE';
-    return this.prisma.attendance.create({
-      data: { userId, date: day, checkIn: now, status, photoUrl, description },
-    });
+    try {
+      return await this.prisma.attendance.create({
+        data: { userId, date: day, checkIn: now, status, photoUrl, description },
+      });
+    } catch (e: any) {
+      const msg = String(e?.message || '');
+      if (msg.includes('Unique') || msg.includes('unique')) {
+        throw new ConflictException('Already checked in');
+      }
+      throw new BadRequestException('Invalid attendance data');
+    }
   }
 
   async checkOut(userId: number, description?: string) {

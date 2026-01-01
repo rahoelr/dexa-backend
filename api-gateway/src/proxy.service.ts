@@ -34,8 +34,19 @@ export class ProxyService {
       res.setHeader('Access-Control-Max-Age', '600');
       return res.status(204).end();
     }
-    const path = (req.params && (req.params as any)[0]) ? `/${(req.params as any)[0]}` : '';
-    const url = `${baseUrl}${prefix}${path}`;
+    const params: Record<string, any> = (req.params as any) || {};
+    const wildcard = params[0];
+    let pathSeg = '';
+    if (wildcard) {
+      pathSeg = `/${wildcard}`;
+    } else {
+      const keys = Object.keys(params);
+      if (keys.length > 0) {
+        const parts = keys.map(k => params[k]).filter(v => typeof v === 'string' && v.length > 0);
+        if (parts.length > 0) pathSeg = `/${parts.join('/')}`;
+      }
+    }
+    const url = `${baseUrl}${prefix}${pathSeg}`;
     const headers: Record<string, string> = {};
     for (const [k, v] of Object.entries(req.headers)) {
       const key = k.toLowerCase();

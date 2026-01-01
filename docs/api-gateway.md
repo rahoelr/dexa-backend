@@ -1,379 +1,214 @@
-# Dokumentasi API Gateway
+# Dokumentasi API Gateway Dexa Backend
 
-## Tujuan
-- Menyederhanakan akses ke beberapa service melalui satu endpoint.
-- Meneruskan request ke service yang tepat dan mengembalikan response apa adanya.
-- Menerapkan guard di Gateway untuk memastikan keamanan dasar (JWT, peran Admin).
+- Base URL default: `http://localhost:8080`
+- Service target:
+  - `/auth/*` dan `/employees/*` → Auth User Service (default `http://localhost:3000`)
+  - `/attendance/*` dan `/admin/attendance/*` → Attendance Service (default `http://localhost:3001`)
+- Konfigurasi env: `PORT`, `AUTH_SERVICE_URL`, `ATTENDANCE_SERVICE_URL`, `JWT_SECRET`, `CORS_ORIGIN` (comma-separated), `GATEWAY_TIMEOUT_MS`, `GATEWAY_RATE_LIMIT`
+- CORS aktif (origin daftar putih, allowed headers: `Authorization`, `Content-Type`, `X-Request-Id`), ValidationPipe aktif (whitelist/transform)
 
-## Konfigurasi
-- Base URL downstream diatur via environment:
-  - AUTH_SERVICE_URL dan ATTENDANCE_SERVICE_URL dibaca oleh Gateway: lihat [config.service.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/config.service.ts#L8-L16)
-  - Default fallback: auth http://localhost:3000, attendance http://localhost:3001
-- JWT_SECRET digunakan untuk verifikasi token di guard: lihat [config.service.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/config.service.ts#L17-L20)
-- Timeout forward dapat diatur via GATEWAY_TIMEOUT_MS (default 15000 ms): [config.service.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/config.service.ts#L14-L16)
-- Compose root mengarahkan Gateway ke host.docker.internal:PORT agar tidak memakai Docker network: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docker-compose.yml#L69-L78)
+Referensi kode: [main.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/main.ts), [app.module.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/app.module.ts), [auth.controller.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/auth.controller.ts), [attendance.controller.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/attendance.controller.ts), [admin-attendance.controller.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/admin-attendance.controller.ts)
 
-## Routing
-- Auth
-  - Endpoint Gateway: `/auth` → diteruskan ke `${AUTH_SERVICE_URL}/auth`
-  - Controller: [auth.controller.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/auth.controller.ts#L10-L43)
-  - Khusus `/auth/register`: wajib token dengan role ADMIN (divalidasi di Gateway sebelum forward).
-- Employees (subset dari Auth Service)
-  - Endpoint Gateway: `/employees` → diteruskan ke `${AUTH_SERVICE_URL}/employees`
-  - Guard: AdminGatewayGuard (wajib role ADMIN): [admin-gateway.guard.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/auth/admin-gateway.guard.ts#L5-L23)
-- Attendance
-  - Endpoint Gateway: `/attendance` → diteruskan ke `${ATTENDANCE_SERVICE_URL}/attendance`
-  - Guard: JwtGatewayGuard (wajib Bearer token valid): [jwt-gateway.guard.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/auth/jwt-gateway.guard.ts#L5-L22)
-  - Controller: [attendance.controller.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/attendance.controller.ts#L9-L27)
+## Autentikasi
+- Skema: Bearer JWT di header `Authorization`
+- Public: `POST /auth/login`, `GET /auth/me` (mengembalikan payload token jika valid; kosong jika tidak)
+- Admin-only: `POST /auth/register`, semua `/employees/*`, semua `/admin/attendance/*`
+- Employee (JWT wajib): semua `/attendance/*`
 
-## Perilaku Forwarding
-- Metode, path, query, dan body diteruskan apa adanya: [proxy.service.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/proxy.service.ts#L37-L46)
-- Header hop-by-hop disaring; Gateway menambahkan header `x-forwarded-*`: [proxy.service.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/proxy.service.ts#L6-L16) dan [proxy.service.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/proxy.service.ts#L31-L35)
-- Response dari service (status + body + sebagian header) dikembalikan langsung: [proxy.service.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/proxy.service.ts#L47-L53)
-- Jika upstream gagal/timeout: Gateway mengembalikan 503 JSON: [proxy.service.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/proxy.service.ts#L52-L61)
+Referensi: [JwtAuthGuard](file:///Users/rahoolll/dexa-technical-test/dexa-backend/attendance-service/src/auth/jwt-auth.guard.ts), [AdminGuard (attendance)](file:///Users/rahoolll/dexa-technical-test/dexa-backend/attendance-service/src/auth/admin.guard.ts), [AdminGuard (auth service)](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/auth/admin.guard.ts)
 
-## Autentikasi di Gateway
-- Bearer token wajib untuk rute yang dilindungi:
-  - Attendance: token valid, payload berisi userId/id/sub
-  - Employees: token valid, role ADMIN
-- Contoh header:
+## Format Error
+NestJS default JSON error:
+- 400 Bad Request (validasi/bisnis): `{ "statusCode": 400, "message": "email_taken", "error": "Bad Request" }`
+- 401 Unauthorized: `{ "statusCode": 401, "message": "Invalid token", "error": "Unauthorized" }`
+- 403 Forbidden: `{ "statusCode": 403, "message": "Admin only", "error": "Forbidden" }`
+- 404 Not Found: `{ "statusCode": 404, "message": "not_found", "error": "Not Found" }`
+- 409 Conflict: `{ "statusCode": 409, "message": "Already checked in", "error": "Conflict" }`
+- 503 Service Unavailable: dari health check DB
 
-```http
-Authorization: Bearer <JWT>
-```
+Gateway meneruskan status + body dari service tanpa mengubah. Saat upstream tidak terjangkau, gateway mengembalikan `503` konsisten: `{ "statusCode": 503, "message": "Upstream unavailable", "error": "Service Unavailable" }`.
 
-## Cara Menjalankan (Root)
-- Prasyarat: Docker Desktop (macOS) dengan dukungan `host.docker.internal`
-- Jalankan dari root backend:
+## Health
+- Endpoint: `GET /health`
+- Mengagregasi status Auth User Service dan Attendance Service:
+  - Auth: memanggil `GET /auth/me` tanpa token (mengembalikan `{}` jika sehat)
+  - Attendance: memanggil `GET /health`
+- Response:
+  ```json
+  { "status": "UP|DOWN", "services": { "auth": { "status": "UP|DOWN", "latencyMs": number }, "attendance": { "status": "UP|DOWN", "latencyMs": number } } }
+  ```
+ - Jika salah satu DOWN → HTTP `503`.
 
-```bash
-docker compose up -d
-```
+## Rate Limiting
+- Default: 100 permintaan/menit per IP. Override dengan env `GATEWAY_RATE_LIMIT`.
+ - Response jika terlampaui: `429 Too Many Requests`.
 
-- Port layanan:
-  - Api Gateway: http://localhost:8080
-  - Auth Service: http://localhost:3000
-  - Attendance Service: http://localhost:3001
-  - MySQL Auth: localhost:3307
-  - MySQL Attendance: localhost:3308
+## Routes: Auth
+Base: `/auth`
 
-- Konfigurasi penting di root compose:
-  - Gateway diarahkan ke host.docker.internal: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docker-compose.yml#L69-L78)
-  - DATABASE_URL service pakai host.docker.internal + port yang dipublish: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docker-compose.yml#L36-L64)
-
-## Menjalankan Api Gateway Saja
-- Jika service downstream berjalan di host pada port default (3000/3001), Gateway bisa berjalan sendiri:
-  - Env contoh: [api-gateway/.env.example](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/.env.example)
-  - Jalankan dengan compose per-folder:
+- POST `/auth/register` (ADMIN)
+  - Body: RegisterDto → `name`, `email`, `password` (min 6), `role?` (`'EMPLOYEE'|'ADMIN'`)
+  - Response: user (`id`, `name`, `email`, `role`, `isActive`, `createdAt`)
+  - Referensi: [AuthController](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/auth/auth.controller.ts#L12-L16), [RegisterDto](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/auth/dto/register.dto.ts)
+  - Contoh request:
 
 ```bash
-cd api-gateway
-docker compose up -d
+curl -X POST http://localhost:8080/auth/register \
+  -H "Authorization: Bearer <ADMIN_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Alice","email":"alice@example.com","password":"secret123","role":"ADMIN"}'
 ```
 
-- Atau jalankan tanpa Docker (Node.js):
+- POST `/auth/login`
+  - Body: LoginDto → `email`, `password` (min 6)
+  - Response: `{ "access_token": string }`
+  - Referensi: [AuthService.login](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/auth/auth.service.ts#L24-L32), [LoginDto](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/auth/dto/login.dto.ts)
+  - Contoh request:
 
 ```bash
-cd api-gateway
-npm install
-npm run start:prod
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alice@example.com","password":"secret123"}'
 ```
 
-## Routing Ringkas
-- `/auth/*` → `${AUTH_SERVICE_URL}/auth/*`
-- `/employees/*` → `${AUTH_SERVICE_URL}/employees/*` (ADMIN)
-- `/attendance/*` → `${ATTENDANCE_SERVICE_URL}/attendance/*` (JWT)
+- GET `/auth/me`
+  - Header: `Authorization: Bearer <token>` (opsional)
+  - Response: payload token (`sub`, `email`, `role`) atau `{}` jika tidak valid/hilang
+  - Referensi: [AuthController.me](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/auth/auth.controller.ts#L23-L34)
+  - Contoh request:
 
-## Contoh Request/Response (JSON)
-- Auth — Login
-
-```http
-POST /auth/login
-Content-Type: application/json
+```bash
+curl http://localhost:8080/auth/me -H "Authorization: Bearer <TOKEN>"
 ```
 
-```json
-// Request
-{
-  "email": "admin@example.com",
-  "password": "password"
+Catatan gateway:
+- `/auth/register` diverifikasi di gateway (wajib admin) sebelum diteruskan.
+- `/auth/login` dan `/auth/me` tetap public (gateway tidak mengubah perilaku).
+
+## Routes: Employees (ADMIN)
+Base: `/employees`
+
+- POST `/employees`
+  - Body: CreateEmployeeDto → `name`, `email`, `password`, `isActive?`
+  - Response: user EMPLOYEE (`id`, `name`, `email`, `role`, `isActive`, `createdAt`)
+  - Referensi: [EmployeesController.create](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/employees/employees.controller.ts#L12-L15), [CreateEmployeeDto](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/employees/dto/create-employee.dto.ts)
+
+- GET `/employees`
+  - Query: `search?`, `page?`, `limit?`
+  - Response: `{ "items": user[], "page": number, "limit": number, "total": number }`
+  - Referensi: [EmployeesController.list](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/employees/employees.controller.ts#L17-L24), [EmployeesService.list](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/employees/employees.service.ts#L26-L49)
+
+- GET `/employees/:id`
+  - Response: user EMPLOYEE atau 404
+  - Referensi: [EmployeesController.get](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/employees/employees.controller.ts#L26-L29)
+
+- PUT `/employees/:id`
+  - Body: UpdateEmployeeDto (semua field opsional)
+  - Response: user EMPLOYEE terbaru
+  - Referensi: [EmployeesController.update](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/employees/employees.controller.ts#L31-L34)
+
+- DELETE `/employees/:id`
+  - Query: `hard=true` (hapus permanen) atau default soft-disable (`isActive=false`)
+  - Response: user (soft) atau `{ "success": true }` (hard)
+  - Referensi: [EmployeesController.remove](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/employees/employees.controller.ts#L36-L39), [EmployeesService.remove](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/src/employees/employees.service.ts#L81-L94)
+
+Contoh request (membuat employee):
+
+```bash
+curl -X POST http://localhost:8080/employees \
+  -H "Authorization: Bearer <ADMIN_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Bob","email":"bob@example.com","password":"secret123"}'
+```
+
+## Routes: Attendance (Employee JWT)
+Base: `/attendance`
+
+- POST `/attendance/check-in`
+  - Body (opsional): `{ "photoUrl"?: URL, "description"?: string (≤500) }`
+  - Response: attendance created (`id`, `userId`, `date`, `checkIn`, `status`, `photoUrl?`, `description?`)
+  - Referensi: [AttendanceController.checkIn](file:///Users/rahoolll/dexa-technical-test/dexa-backend/attendance-service/src/attendance/attendance.controller.ts#L12-L16), [CheckInDto](file:///Users/rahoolll/dexa-technical-test/dexa-backend/attendance-service/src/attendance/dto/check-in.dto.ts)
+
+- POST `/attendance/check-out`
+  - Body (opsional): `{ "description"?: string (≤500) }`
+  - Response: attendance updated (field `checkOut` terisi)
+  - Referensi: [AttendanceController.checkOut](file:///Users/rahoolll/dexa-technical-test/dexa-backend/attendance-service/src/attendance/attendance.controller.ts#L18-L22)
+
+- GET `/attendance/me`
+  - Query: `from?`, `to?` (ISO date), `page?` (default 1), `pageSize?` (default 20)
+  - Response: `{ "items": attendance[], "page": number, "pageSize": number, "total": number }`
+  - Referensi: [AttendanceController.me](file:///Users/rahoolll/dexa-technical-test/dexa-backend/attendance-service/src/attendance/attendance.controller.ts#L24-L37)
+
+Contoh request (check-in):
+
+```bash
+curl -X POST http://localhost:8080/attendance/check-in \
+  -H "Authorization: Bearer <EMPLOYEE_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"photoUrl":"https://example.com/p.jpg","description":"Datang"}'
+```
+
+Catatan gateway:
+- Semua `/attendance/*` diblok di gateway jika token tidak valid/hilang (401).
+- Gateway hanya memverifikasi token \u0026 userId, otorisasi bisnis tetap di service.
+
+## Routes: Admin Attendance (ADMIN)
+Base: `/admin/attendance`
+
+- GET `/admin/attendance`
+  - Query: `userId?`, `from?`, `to?`, `page?`, `pageSize?`
+  - Response: history (`items`, `page`, `pageSize`, `total`). Jika `userId` ada → hanya user tsb.
+  - Referensi: [AdminAttendanceController.list](file:///Users/rahoolll/dexa-technical-test/dexa-backend/attendance-service/src/attendance/admin.controller.ts#L11-L25)
+
+- GET `/admin/attendance/today`
+  - Query: `page?`, `pageSize?` (default 50)
+  - Response: `{ "items": attendance[], "page": number, "pageSize": number, "total": number }`
+  - Referensi: [AdminAttendanceController.today](file:///Users/rahoolll/dexa-technical-test/dexa-backend/attendance-service/src/attendance/admin.controller.ts#L27-L32)
+
+Contoh request (list semua):
+
+```bash
+curl "http://localhost:8080/admin/attendance?page=1&pageSize=50" \
+  -H "Authorization: Bearer <ADMIN_TOKEN>"
+```
+
+## Contoh Penggunaan di Frontend
+Simpan token setelah login, gunakan di `Authorization` untuk semua route yang membutuhkan.
+
+Contoh login dan pemanggilan API dengan `fetch`:
+
+```ts
+async function login(email: string, password: string) {
+  const res = await fetch('http://localhost:8080/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new Error('Login gagal');
+  const { access_token } = await res.json();
+  return access_token;
+}
+
+async function getMyAttendance(token: string, params?: { from?: string; to?: string; page?: number; pageSize?: number }) {
+  const url = new URL('http://localhost:8080/attendance/me');
+  Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined) url.searchParams.set(k, String(v)); });
+  const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Gagal mengambil attendance');
+  return res.json();
+}
+
+async function adminListEmployees(token: string, search?: string) {
+  const url = new URL('http://localhost:8080/employees');
+  if (search) url.searchParams.set('search', search);
+  const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Gagal mengambil employees');
+  return res.json();
 }
 ```
 
-```json
-// Response 200
-{
-  "access_token": "<JWT>"
-}
-```
-
-```json
-// Response 401
-{
-  "statusCode": 401,
-  "message": "invalid_credentials",
-  "error": "Unauthorized"
-}
-```
-
-- Auth — Register (ADMIN)
-
-```http
-POST /auth/register
-Authorization: Bearer <ADMIN_JWT>
-Content-Type: application/json
-```
-
-```json
-// Request
-{
-  "name": "Alice",
-  "email": "alice@example.com",
-  "password": "secret123",
-  "role": "EMPLOYEE"
-}
-```
-
-```json
-// Response 201
-{
-  "id": 2,
-  "name": "Alice",
-  "email": "alice@example.com",
-  "role": "EMPLOYEE",
-  "isActive": true,
-  "createdAt": "2025-12-30T18:56:45.690Z"
-}
-```
-
-```json
-// Response 400 (email sudah dipakai)
-{
-  "statusCode": 400,
-  "message": "email_taken",
-  "error": "Bad Request"
-}
-```
-
-```json
-// Response 401/403 (bukan ADMIN atau token invalid)
-{
-  "statusCode": 403,
-  "message": "Admin only",
-  "error": "Forbidden"
-}
-```
-
-- Auth — Me
-
-```http
-GET /auth/me
-Authorization: Bearer <JWT>
-```
-
-```json
-// Response 200
-{
-  "sub": 2,
-  "email": "alice@example.com",
-  "role": "EMPLOYEE",
-  "iat": 1767121010,
-  "exp": 1767207410
-}
-```
-
-- Employees (ADMIN)
-
-```http
-GET /employees
-Authorization: Bearer <ADMIN_JWT>
-```
-
-```json
-// Response 200 (contoh bentuk umum)
-[
-  { "id": 1, "name": "Admin", "email": "admin@example.com", "role": "ADMIN" },
-  { "id": 2, "name": "Alice", "email": "alice@example.com", "role": "EMPLOYEE" }
-]
-```
-
-```json
-// Response 403
-{
-  "statusCode": 403,
-  "message": "Admin only",
-  "error": "Forbidden"
-}
-```
-
-- Attendance — Check-in (JWT)
-
-```http
-POST /attendance/check-in
-Authorization: Bearer <JWT>
-Content-Type: application/json
-```
-
-```json
-// Request (opsional)
-{
-  "photoUrl": "https://example.com/p.jpg",
-  "description": "Datang"
-}
-```
-
-```json
-// Response 200
-{
-  "id": 10,
-  "userId": 2,
-  "date": "2025-12-30T00:00:00.000Z",
-  "checkIn": "2025-12-30T09:01:02.345Z",
-  "checkOut": null,
-  "photoUrl": "https://example.com/p.jpg",
-  "status": "ON_TIME",
-  "description": "Datang",
-  "createdAt": "2025-12-30T09:01:02.345Z"
-}
-```
-
-```json
-// Response 409 (sudah check-in)
-{
-  "statusCode": 409,
-  "message": "Already checked in",
-  "error": "Conflict"
-}
-```
-
-- Attendance — Check-out (JWT)
-
-```http
-POST /attendance/check-out
-Authorization: Bearer <JWT>
-Content-Type: application/json
-```
-
-```json
-// Request (opsional)
-{
-  "description": "Pulang"
-}
-```
-
-```json
-// Response 200
-{
-  "id": 10,
-  "userId": 2,
-  "date": "2025-12-30T00:00:00.000Z",
-  "checkIn": "2025-12-30T09:01:02.345Z",
-  "checkOut": "2025-12-30T17:02:01.123Z",
-  "photoUrl": "https://example.com/p.jpg",
-  "status": "ON_TIME",
-  "description": "Pulang",
-  "createdAt": "2025-12-30T09:01:02.345Z"
-}
-```
-
-```json
-// Response 400 (belum check-in)
-{
-  "statusCode": 400,
-  "message": "Not checked in",
-  "error": "Bad Request"
-}
-```
-
-```json
-// Response 409 (sudah check-out)
-{
-  "statusCode": 409,
-  "message": "Already checked out",
-  "error": "Conflict"
-}
-```
-
-- Attendance — Riwayat Saya (JWT)
-
-```http
-GET /attendance/me?from=2025-12-01&to=2025-12-31&page=1&pageSize=20
-Authorization: Bearer <JWT>
-```
-
-```json
-// Response 200
-{
-  "items": [
-    {
-      "id": 10,
-      "userId": 2,
-      "date": "2025-12-30T00:00:00.000Z",
-      "checkIn": "2025-12-30T09:01:02.345Z",
-      "checkOut": "2025-12-30T17:02:01.123Z",
-      "photoUrl": "https://example.com/p.jpg",
-      "status": "ON_TIME",
-      "description": "Pulang",
-      "createdAt": "2025-12-30T09:01:02.345Z"
-    }
-  ],
-  "page": 1,
-  "pageSize": 20,
-  "total": 1
-}
-```
-
-- Kesalahan Upstream (503 dari Gateway)
-
-```json
-{
-  "statusCode": 503,
-  "message": "Upstream unavailable",
-  "error": "Service Unavailable",
-  "code": "ETIMEDOUT",
-  "upstream": "http://host.docker.internal:3000/auth/login"
-}
-```
-
-## Troubleshooting Cepat
-- 503 dari Gateway: upstream tidak tersedia atau timeout; pastikan service target berjalan di port yang benar.
-- 401 dari Gateway: token bearer hilang/invalid; pastikan header Authorization benar.
-- 403 di Employees: token tidak memiliki role ADMIN.
-
-## Panduan Integrasi Dashboard Karyawan (EMPLOYEE)
-- Tujuan: halaman dashboard karyawan untuk melakukan check-in, check-out, dan melihat riwayat.
-- Persyaratan: JWT berlaku; header `Authorization: Bearer <JWT>` pada semua rute Attendance.
-
-- Ringkasan Alur UI → API:
-  - Tampilkan status hari ini: panggil `GET /attendance/me?from=<today>&to=<today>` lalu ambil entri hari ini (jika ada) untuk menentukan apakah sudah check-in/checkout.
-  - Aksi Check-in: `POST /attendance/check-in` dengan body opsional `{ photoUrl?, description? }`.
-  - Aksi Check-out: `POST /attendance/check-out` dengan body opsional `{ description? }`.
-  - Riwayat: `GET /attendance/me?from=<start>&to=<end>&page=<n>&pageSize=<m>` untuk pagination/filter tanggal.
-
-- Aturan Bisnis Utama:
-  - Satu record per user per tanggal; `check-in` menolak jika sudah ada record aktif pada hari tersebut (409).
-  - `check-out` menolak jika belum `check-in` (400) atau sudah `check-out` (409).
-  - `status` ditentukan oleh logika di Attendance Service (`ON_TIME`/`LATE`/`ABSENT`).
-
-- Respons yang diharapkan (ringkas):
-  - Check-in sukses: objek Attendance dengan `checkIn` terisi dan `checkOut: null`.
-  - Check-out sukses: objek Attendance dengan `checkOut` terisi.
-  - Riwayat: `{ items: Attendance[], page, pageSize, total }`.
-
-- Penanganan Error di UI:
-  - 401: paksa login ulang, bersihkan token.
-  - 409 saat check-in: tampilkan pesan “Anda sudah check-in hari ini”.
-  - 400 saat check-out: tampilkan pesan “Anda belum check-in”.
-  - 503: tampilkan toast umum “Layanan tidak tersedia, coba lagi.”
-
-- Referensi Controller di Gateway:
-  - Attendance: [attendance.controller.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/attendance.controller.ts#L9-L27)
-  - Guard JWT: [jwt-gateway.guard.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/auth/jwt-gateway.guard.ts#L5-L22)
-
-## Panduan Integrasi Dashboard Admin (ADMIN)
-- Fokus: manajemen register karyawan (buat, lihat, ubah, nonaktifkan, hapus).
-- Semua rute dilindungi role ADMIN melalui Gateway.
-- Dokumentasi lengkap UI Flow, Routing, serta spesifikasi JSON tersedia di:
-  - [admin-monitoring-absensi.md](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docs/admin-monitoring-absensi.md)
-  - [ui-flow-dashboard-admin.md](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docs/ui-flow-dashboard-admin.md)
-  - [crud-karyawan-admin.md](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docs/crud-karyawan-admin.md)
+## Konfigurasi & Catatan
+- API Gateway env: `PORT` (default 8080), `AUTH_SERVICE_URL` (default `http://localhost:3000`), `ATTENDANCE_SERVICE_URL` (default `http://localhost:3001`)
+- Attendance Service env yang memengaruhi logika:
+  - `SHIFT_START` (default `'09:00'`), `LATE_GRACE` (menit, default `15`) → status `ON_TIME`/`LATE` saat check-in. Referensi: [AttendanceService](file:///Users/rahoolll/dexa-technical-test/dexa-backend/attendance-service/src/attendance/attendance.service.ts#L23-L33)
+- `JWT_SECRET` harus konsisten di semua service untuk verifikasi token.
+- Pagination: employees → `page`, `limit`; attendance → `page`, `pageSize`.

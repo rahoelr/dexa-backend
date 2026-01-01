@@ -9,7 +9,7 @@ services:
     ports:
       - "3307:3306"
     volumes:
-      - mysql_auth_data:/var/lib/mysql
+      - ./data/mysql_auth:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -26,7 +26,7 @@ services:
     ports:
       - "3308:3306"
     volumes:
-      - mysql_attendance_data:/var/lib/mysql
+      - ./data/mysql_attendance:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -59,6 +59,8 @@ services:
     depends_on:
       mysql_attendance:
         condition: service_healthy
+    volumes:
+      - ./attendance-service/data/database/photos:/usr/src/app/data/database/photos
     ports:
       - "${PORT_ATTENDANCE:-3001}:${PORT_ATTENDANCE:-3001}"
 
