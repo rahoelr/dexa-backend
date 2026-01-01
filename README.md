@@ -26,6 +26,8 @@ Lihat compose: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-test/d
     - MySQL Attendance: host=localhost port=3308
   - Health check:
     - `curl http://localhost:8080/health`
+  - Catatan klien:
+    - Semua klien (termasuk frontend) WAJIB mengakses layanan melalui API Gateway (`http://localhost:8080`). Set `VITE_API_BASE_URL=http://localhost:8080`.
   - Hentikan:
     - `docker compose down`
   - Logs cepat:

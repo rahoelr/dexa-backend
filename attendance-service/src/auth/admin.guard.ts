@@ -11,11 +11,15 @@ export class AdminGuard implements CanActivate {
     if (!m) throw new UnauthorizedException('Missing bearer token');
     try {
       const payload = this.jwt.verify(m[1], { secret: process.env.JWT_SECRET || 'rahulrtest' });
-      const role = payload.role ?? payload.roles;
-      if (role === 'admin' || (Array.isArray(role) && role.includes('admin'))) return true;
-      const ids = (process.env.ADMIN_IDS || '').split(',').map(v => v.trim()).filter(Boolean);
+      const role = payload.role;
+      const roles = payload.roles;
       const uid = String(payload.userId ?? payload.id ?? payload.sub);
-      if (ids.includes(uid)) return true;
+      const ids = (process.env.ADMIN_IDS || '').split(',').map(v => v.trim()).filter(Boolean);
+      const hasAdminRole = typeof role === 'string' && role.toUpperCase() === 'ADMIN';
+      const hasAdminRolesArray =
+        Array.isArray(roles) &&
+        roles.some((r: any) => typeof r === 'string' && String(r).toUpperCase() === 'ADMIN');
+      if (hasAdminRole || hasAdminRolesArray || ids.includes(uid)) return true;
       throw new ForbiddenException('Admin only');
     } catch (e) {
       if (e instanceof ForbiddenException) throw e;

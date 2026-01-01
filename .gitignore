@@ -90,3 +90,7 @@ attendance-service/report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # Prisma generated
 auth-user-service/generated/prisma
 attendance-service/generated/prisma
+docs/admin-monitoring-absensi.md
+docs/api-gateway.md
+docs/api-gateway.md
+docs/api-gateway.md

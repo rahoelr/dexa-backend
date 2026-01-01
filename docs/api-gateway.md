@@ -374,5 +374,6 @@ Authorization: Bearer <JWT>
 - Fokus: manajemen register karyawan (buat, lihat, ubah, nonaktifkan, hapus).
 - Semua rute dilindungi role ADMIN melalui Gateway.
 - Dokumentasi lengkap UI Flow, Routing, serta spesifikasi JSON tersedia di:
+  - [admin-monitoring-absensi.md](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docs/admin-monitoring-absensi.md)
   - [ui-flow-dashboard-admin.md](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docs/ui-flow-dashboard-admin.md)
   - [crud-karyawan-admin.md](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docs/crud-karyawan-admin.md)

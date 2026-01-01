@@ -11,14 +11,33 @@ export class AdminGatewayGuard implements CanActivate {
     if (!header) throw new UnauthorizedException();
     const [type, token] = header.split(' ');
     if (type !== 'Bearer' || !token) throw new UnauthorizedException();
-    const payload = (() => {
+    const payload: any = (() => {
       try {
         return this.jwt.verify(token);
       } catch {
         throw new UnauthorizedException();
       }
     })();
-    if (payload?.role !== 'ADMIN') throw new ForbiddenException('Admin only');
+    const role: unknown = payload?.role;
+    const roles: unknown = payload?.roles;
+    const sub: unknown = payload?.sub;
+    const adminIdsEnv = process.env.ADMIN_IDS || '';
+    const adminIds = adminIdsEnv
+      .split(',')
+      .map((s) => Number(String(s).trim()))
+      .filter((n) => !Number.isNaN(n));
+    const hasAdminRole =
+      typeof role === 'string' && role.toUpperCase() === 'ADMIN';
+    const hasAdminRolesArray =
+      Array.isArray(roles) &&
+      (roles as unknown[])
+        .filter((r) => typeof r === 'string')
+        .some((r: any) => String(r).toUpperCase() === 'ADMIN');
+    const isAdminById =
+      typeof sub === 'number' && adminIds.length > 0 && adminIds.includes(sub as number);
+    if (!(hasAdminRole || hasAdminRolesArray || isAdminById)) {
+      throw new ForbiddenException('Admin only');
+    }
     return true;
   }
 }
