@@ -17,7 +17,7 @@ Lihat compose: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-test/d
 
 ## Cara Menjalankan
 - Jalankan dari root (Docker Compose):
-  - `docker compose up -d`
+  - `docker compose up -d --build`
   - Akses:
     - API Gateway: http://localhost:8080
     - Auth Service: http://localhost:3000
