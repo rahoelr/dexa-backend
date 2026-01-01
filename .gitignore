@@ -1,5 +1,5 @@
 .trae/
-.docs
+.docs/
 
 # Auth service build artifacts
 auth-user-service/dist

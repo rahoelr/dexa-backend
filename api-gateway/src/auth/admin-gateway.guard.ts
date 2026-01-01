@@ -6,6 +6,7 @@ export class AdminGatewayGuard implements CanActivate {
   constructor(private readonly jwt: JwtService) {}
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest();
+    if (req.method === 'OPTIONS') return true;
     const header: string | undefined = req.headers['authorization'];
     if (!header) throw new UnauthorizedException();
     const [type, token] = header.split(' ');

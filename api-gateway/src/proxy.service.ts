@@ -30,6 +30,8 @@ export class ProxyService {
       res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', reqHeaders);
       res.setHeader('Access-Control-Allow-Credentials', 'false');
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Max-Age', '600');
       return res.status(204).end();
     }
     const path = (req.params && (req.params as any)[0]) ? `/${(req.params as any)[0]}` : '';
@@ -60,6 +62,17 @@ export class ProxyService {
         if (typeof v === 'string' && !HOP_BY_HOP.has(k.toLowerCase())) {
           res.setHeader(k, v);
         }
+      }
+      const origin = (req.headers.origin as string) || '';
+      if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'false');
+        res.setHeader('Access-Control-Expose-Headers', 'X-Request-Id');
+        // merge Vary header properly
+        const existingVary = (res.getHeader('Vary') as string) || '';
+        const varyParts = new Set(existingVary.split(',').map(s => s.trim()).filter(Boolean));
+        varyParts.add('Origin');
+        res.setHeader('Vary', Array.from(varyParts).join(', '));
       }
       return res.status(r.status).send(r.data);
     } catch (e: any) {

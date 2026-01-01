@@ -19,7 +19,7 @@ export class AuthController {
   @All('*')
   async handle(@Req() req: Request, @Res() res: Response) {
     const subpath = (req.params && (req.params as any)[0]) || '';
-    if (subpath === 'register') {
+    if (req.method !== 'OPTIONS' && subpath === 'register') {
       const header: string | undefined = req.headers['authorization'] as string | undefined;
       if (!header) return res.status(401).send({ statusCode: 401, message: 'Missing bearer token', error: 'Unauthorized' });
       const [type, token] = header.split(' ');

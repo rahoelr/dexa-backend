@@ -339,3 +339,40 @@ Authorization: Bearer <JWT>
 - 503 dari Gateway: upstream tidak tersedia atau timeout; pastikan service target berjalan di port yang benar.
 - 401 dari Gateway: token bearer hilang/invalid; pastikan header Authorization benar.
 - 403 di Employees: token tidak memiliki role ADMIN.
+
+## Panduan Integrasi Dashboard Karyawan (EMPLOYEE)
+- Tujuan: halaman dashboard karyawan untuk melakukan check-in, check-out, dan melihat riwayat.
+- Persyaratan: JWT berlaku; header `Authorization: Bearer <JWT>` pada semua rute Attendance.
+
+- Ringkasan Alur UI → API:
+  - Tampilkan status hari ini: panggil `GET /attendance/me?from=<today>&to=<today>` lalu ambil entri hari ini (jika ada) untuk menentukan apakah sudah check-in/checkout.
+  - Aksi Check-in: `POST /attendance/check-in` dengan body opsional `{ photoUrl?, description? }`.
+  - Aksi Check-out: `POST /attendance/check-out` dengan body opsional `{ description? }`.
+  - Riwayat: `GET /attendance/me?from=<start>&to=<end>&page=<n>&pageSize=<m>` untuk pagination/filter tanggal.
+
+- Aturan Bisnis Utama:
+  - Satu record per user per tanggal; `check-in` menolak jika sudah ada record aktif pada hari tersebut (409).
+  - `check-out` menolak jika belum `check-in` (400) atau sudah `check-out` (409).
+  - `status` ditentukan oleh logika di Attendance Service (`ON_TIME`/`LATE`/`ABSENT`).
+
+- Respons yang diharapkan (ringkas):
+  - Check-in sukses: objek Attendance dengan `checkIn` terisi dan `checkOut: null`.
+  - Check-out sukses: objek Attendance dengan `checkOut` terisi.
+  - Riwayat: `{ items: Attendance[], page, pageSize, total }`.
+
+- Penanganan Error di UI:
+  - 401: paksa login ulang, bersihkan token.
+  - 409 saat check-in: tampilkan pesan “Anda sudah check-in hari ini”.
+  - 400 saat check-out: tampilkan pesan “Anda belum check-in”.
+  - 503: tampilkan toast umum “Layanan tidak tersedia, coba lagi.”
+
+- Referensi Controller di Gateway:
+  - Attendance: [attendance.controller.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/attendance.controller.ts#L9-L27)
+  - Guard JWT: [jwt-gateway.guard.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/api-gateway/src/auth/jwt-gateway.guard.ts#L5-L22)
+
+## Panduan Integrasi Dashboard Admin (ADMIN)
+- Fokus: manajemen register karyawan (buat, lihat, ubah, nonaktifkan, hapus).
+- Semua rute dilindungi role ADMIN melalui Gateway.
+- Dokumentasi lengkap UI Flow, Routing, serta spesifikasi JSON tersedia di:
+  - [ui-flow-dashboard-admin.md](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docs/ui-flow-dashboard-admin.md)
+  - [crud-karyawan-admin.md](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docs/crud-karyawan-admin.md)

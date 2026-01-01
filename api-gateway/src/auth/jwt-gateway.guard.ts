@@ -6,6 +6,7 @@ export class JwtGatewayGuard implements CanActivate {
   constructor(private readonly jwt: JwtService) {}
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest();
+    if (req.method === 'OPTIONS') return true;
     const auth = req.headers['authorization'] || '';
     const m = /^Bearer\s+(.+)$/.exec(auth);
     if (!m) throw new UnauthorizedException('Missing bearer token');
