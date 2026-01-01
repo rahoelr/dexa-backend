@@ -52,6 +52,28 @@ Lihat compose: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-test/d
 
 Sumber konfigurasi: [docker-compose.yml](file:///Users/rahoolll/dexa-technical-test/dexa-backend/docker-compose.yml)
 
+## Akun Seeder (Auth Service)
+- Admin (default, dapat diubah via env):
+  - Email: `ADMIN_EMAIL` (default `admin@example.com`)
+  - Nama: `ADMIN_NAME` (default `Admin`)
+  - Password: `ADMIN_PASSWORD` (default `password`)
+- Karyawan (EMPLOYEE) bawaan:
+  - `employee1@example.com` / password: `password`
+  - `employee2@example.com` / password: `password`
+  - `employee3@example.com` / password: `password`
+- Sifat seeder:
+  - Idempoten: jika akun sudah ada (berdasarkan email), tidak dibuat ulang.
+  - Hashing password menggunakan bcrypt.
+  - Berjalan otomatis saat container `auth-user-service` start melalui entrypoint.
+- Menjalankan seeder manual (lokal):
+  - Masuk ke folder [auth-user-service](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service)
+  - Pastikan `DATABASE_URL` terpasang
+  - Jalankan: `npm run prisma:seed`
+- Referensi implementasi:
+  - Seeder: [seed.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/prisma/seed.ts)
+  - Entrypoint: [entrypoint.sh](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/scripts/entrypoint.sh)
+  - Konfigurasi script: [package.json](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/package.json)
+
 ## Endpoint Utama via Gateway (8080)
 - Auth:
   - POST /auth/login — login dan mendapatkan JWT

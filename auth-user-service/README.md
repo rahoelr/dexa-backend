@@ -25,6 +25,28 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Akun Seeder (Auth Service)
+
+- Admin (default, dapat diubah via env):
+  - Email: `ADMIN_EMAIL` (default `admin@example.com`)
+  - Nama: `ADMIN_NAME` (default `Admin`)
+  - Password: `ADMIN_PASSWORD` (default `password`)
+- Karyawan (EMPLOYEE) bawaan:
+  - `employee1@example.com` / password: `password`
+  - `employee2@example.com` / password: `password`
+  - `employee3@example.com` / password: `password`
+- Sifat seeder:
+  - Idempoten: jika akun sudah ada (email), tidak dibuat ulang.
+  - Password di-hash dengan bcrypt (salt 10).
+  - Berjalan otomatis saat container start melalui entrypoint.
+- Menjalankan seeder manual (lokal):
+  - Pastikan `DATABASE_URL` terpasang.
+  - Jalankan: `npm run prisma:seed`
+- Referensi implementasi:
+  - Seeder: [seed.ts](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/prisma/seed.ts)
+  - Entrypoint: [entrypoint.sh](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/scripts/entrypoint.sh)
+  - Konfigurasi script: [package.json](file:///Users/rahoolll/dexa-technical-test/dexa-backend/auth-user-service/package.json)
+
 ## Project setup
 
 ```bash
